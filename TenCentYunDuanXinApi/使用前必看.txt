@@ -5,5 +5,5 @@
 SmsSingleSender.class.php 
 SmsSenderUtil.class.php
 
-该文件是一个调用的接口，内部参数需要根据需求改动
+以下文件是一个调用的接口，内部参数需要根据需求改动
 TenCentYunDuanXin.class.php
