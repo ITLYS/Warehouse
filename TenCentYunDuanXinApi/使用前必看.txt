@@ -1,7 +1,7 @@
 该方法是从tp3.2框架中直接提取出来得到的。
 如果要用的话有些引用需要改动，不然会报错
 
-以下文件除引用外，内部方法方法不需要改动
+以下文件除引用路径需改动外，内部方法方法不需要改动
 SmsSingleSender.class.php 
 SmsSenderUtil.class.php
 
