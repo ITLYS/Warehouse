@@ -3,36 +3,50 @@ namespace Admin\Controller\NestingHTML;
 use Admin\Controller\WeiXinController;
 use Think\Controller;
 class IndexController extends WeiXinController{
-  //查询券、验券,撤销验券
+
+
+  /* @FunctionDesc:美团卡卷 查询、验券（核销），撤销验券
+   * @Params:  qr_code 卡券券码
+   *           open_shop_uuid 店铺id (根据session值 获取得到)
+   *           deal_id 套餐id 查询接口获得
+   *           type 功能类型 值为 save 验券（核销）、值为 cancel 验券（核销）、其他值时为查询
+   * */
   public function tuangou_hexiao(){
     //
     $qr_cpde = $_GET['qr_code'];
     $open_shop_uuid = $_GET['open_shop_uuid'];
 
     // $arr 为数组 里面为应用参数
-    $appKey = "489fe7fd6307ec07";
-    $secret = "18920c6ea05a6dabca8b8e4d8c28588c34669578"; //秘钥
+    $appKey = "111111111";
+    $secret = "11111111111111111"; //秘钥
     $timestamp = date('Y-m-d H:i:s');
     $format = 'json';
     $v = 1;
     $sign_method = 'MD5';
+    //因为功能要实现在小程序，所以获取的必要信息要存在文件中，有必要时拿出来
+    //不是必要行为，
     $file = $this->readFile();
+
     $data = [
       'app_key' => $appKey,
       'timestamp' => $timestamp,
       'sign_method' => $sign_method,
       'format' => $format,
       'v' => $v,
+      //此处的session值，我原本是存在文件中的，
+      //如果你不需要存文件，那你就当做参数传递过来
       'session' => $file['session'],
     ];
+    //根据不同的操作类型配置不同的参数
+    //具体参数含义见 https://open.dianping.com/document/v2?docId=6000176&rootDocId=5000
     if($_GET['type']=='save'){
       $arr = [
         'requestid' => '123',
         'count'=>1,
         'receipt_code' => $qr_cpde,
         'open_shop_uuid' => $open_shop_uuid,
-        'app_shop_account' => '13451943596',
-        'app_shop_accountname' => '13451943596',
+        'app_shop_account' => '账号',
+        'app_shop_accountname' => '账号名称',
       ];
       $url = 'https://openapi.dianping.com/router/tuangou/receipt/consume';//验券(核销)
     }elseif ($_GET['type']=='cancel'){
@@ -40,8 +54,8 @@ class IndexController extends WeiXinController{
           'app_deal_id' => $_GET['deal_id'],
           'receipt_code' => $qr_cpde,
           'open_shop_uuid' => $open_shop_uuid,
-          'app_shop_account' => '13451943596',
-          'app_shop_accountname' => '13451943596',
+          'app_shop_account' => '账号',
+          'app_shop_accountname' => '账号名称',
         ];
       $url = 'https://openapi.dianping.com/router/tuangou/receipt/reverseconsume';//撤销
     }else{
@@ -58,29 +72,22 @@ class IndexController extends WeiXinController{
     $data['sign'] = $sign;
     $data = array_merge($data, $arr);
     $postdata = http_build_query($data);
-    //输码查询券
-    //$url = 'https://openapi.dianping.com/router/tuangou/receipt/scanprepare';//扫码查询券
-   //
-    //
     $tmpInfo= $this->curl_post($url,$postdata);
     $this->ReturnSucess($tmpInfo);
 
   }
 
-  //授权获取auth_code
+  /* @FunctionDesc:商家授权
+   * @Params:  auth_code 用户同意授权后，回调得到的值，根据该值可获取session(也就是auth_token)
+   * */
   public function get_auth(){
     $auth_code = $_GET["auth_code"];
-    $data = $this->readFile();
-    $if_expires=strtotime($data['create_date'])+intval($data['expires_in']);
-    if(strtotime('now')<$if_expires&&!empty($data)&&empty($auth_code)){
-      $this->assign('shop_info',$data['shop_info']);
-      $this->display('NestingHTML/MT/select_shop');die;
-    }
-
+    //判断是否为回调
     if(empty($auth_code)) {
-      $app_key='489fe7fd6307ec07';
+      $app_key='11111111111';
       $state='teststate';
-      $redirect_url='https://gxkj.520ph.cn/SPACE/index.php/Admin/NestingHTML/index/get_auth';
+      //回调的url,我配置为当前方法。
+      $redirect_url='https:你的路径/index/get_auth';
       $scope='tuangou';
       $url='https://e.dianping.com/dz-open/merchant/auth?';
       $data=[
@@ -94,27 +101,18 @@ class IndexController extends WeiXinController{
       trace('回调成功'.$auth_code);
       //根据auth_code 获取session的授权码
       $tmpInfo = $this->get_session($auth_code);
-      $data['session']=$tmpInfo['access_token'];
-      $data['bid']=$tmpInfo['bid'];
-      $data['create_date']=date('Y-m-d H:i:s');
-      $data['expires_in']=$tmpInfo['expires_in'];
-      $data['bid']=$tmpInfo['bid'];
       //根据$session $bid 获取店铺id
       $shopInfo = $this->get_shopid($tmpInfo['access_token'],$tmpInfo['bid']);
-      $data['shop_info']=$shopInfo['data'];
-      $this->createFile($data);
-      $this->assign('shop_info',$data['shop_info']);
-      $this->display('NestingHTML/MT/select_shop');die;
     }
   }
 
 
   //授权获取session
   public function get_session($auth_code){
-    $app_key='489fe7fd6307ec07';
-    $app_secret='18920c6ea05a6dabca8b8e4d8c28588c34669578';
+    $app_key='1111111';
+    $app_secret='111111111111111111111';
     $grant_type='authorization_code';
-    $redirect_url='https://gxkj.520ph.cn/SPACE/index.php/Admin/NestingHTML/index/get_auth';
+    $redirect_url='https:你的路径/index/get_auth';
     $data=[
       'app_key' =>$app_key,
       'app_secret' => $app_secret,
@@ -131,8 +129,8 @@ class IndexController extends WeiXinController{
 
   //获取所有店铺的id
   public function get_shopid($session,$bid){
-    $app_key='489fe7fd6307ec07';
-    $secret = "18920c6ea05a6dabca8b8e4d8c28588c34669578"; //秘钥
+    $app_key='11111111';
+    $secret = "111111111111111111111111"; //秘钥
     $sign_method='MD5';
     $timestamp = date('Y-m-d H:i:s');
     $format = 'json';
